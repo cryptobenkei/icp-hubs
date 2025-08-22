@@ -1,0 +1,60 @@
+type AdminGiftRequest = record {
+  domain_name : text;
+  operator : principal;
+  recipient : principal;
+  administrator : principal;
+};
+type DomainInfo = record {
+  status : DomainStatus;
+  owner : principal;
+  operator : principal;
+  name : text;
+  canister_id : principal;
+  was_gifted : bool;
+  mcp_endpoint : text;
+  expiration_time : nat64;
+  administrator : principal;
+};
+type DomainStatus = variant { Reserved; Active; Expired };
+type RegistrationMode = variant { Open; Closed; WhitelistOnly };
+type RegistrationRequest = record {
+  domain_name : text;
+  operator : principal;
+  payment_block : nat64;
+  administrator : principal;
+};
+type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : text; Err : text };
+type SearchResult = record {
+  domain : text;
+  tools_count : nat32;
+  was_gifted : bool;
+  description : text;
+  mcp_endpoint : text;
+  resources_count : nat32;
+};
+service : (principal) -> {
+  add_admin : (principal) -> (Result);
+  add_reserved_name : (text) -> (Result);
+  admin_gift_domain : (AdminGiftRequest) -> (Result_1);
+  approve_user_for_short_names : (principal) -> (Result);
+  can_register_domain : (text, principal) -> (bool) query;
+  discover_domains : (text) -> (vec SearchResult) query;
+  get_admins : () -> (vec principal) query;
+  get_approved_short_users : () -> (vec principal) query;
+  get_domain_info : (text) -> (opt DomainInfo) query;
+  get_mcp_endpoint : (text) -> (opt text) query;
+  get_registration_fee : (text) -> (nat64) query;
+  get_renewal_fee : () -> (nat64) query;
+  get_short_name_mode : () -> (RegistrationMode) query;
+  is_user_admin : (principal) -> (bool) query;
+  list_domains : (opt principal) -> (vec DomainInfo) query;
+  register_domain : (RegistrationRequest) -> (Result_1);
+  remove_admin : (principal) -> (Result);
+  renew_domain : (text, nat64) -> (Result_1);
+  revoke_short_name_approval : (principal) -> (Result);
+  set_base_fee : (nat64) -> (Result);
+  set_custom_mcp_endpoint : (text, opt text) -> (Result);
+  set_domain_canister_wasm : (blob) -> (Result);
+  set_short_name_mode : (RegistrationMode) -> (Result);
+}
