@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "registry_backend": {
+      "candid": "src/registry_backend/registry_backend.did",
+      "package": "registry_backend",
+      "type": "rust"
+    },
+    "registry_frontend": {
+      "dependencies": [
+        "registry_backend"
+      ],
+      "source": [
+        "src/registry_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "registry_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
