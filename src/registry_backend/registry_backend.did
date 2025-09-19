@@ -1,3 +1,157 @@
-service : {
-    "greet": (text) -> (text) query;
+type DomainRecord = record {
+  owner : principal;
+  administrator : principal;
+  operator : principal;
+  canister_id : principal;
+  registration_time : nat64;
+  expiration_time : nat64;
+  last_payment_block : nat64;
+  custom_mcp_endpoint : opt text;
+  was_gifted : bool;
+  registration_season_id : opt nat64;
+};
+
+type DomainInfo = record {
+  name : text;
+  owner : principal;
+  administrator : principal;
+  operator : principal;
+  canister_id : principal;
+  expiration_time : nat64;
+  mcp_endpoint : text;
+  status : DomainStatus;
+  was_gifted : bool;
+};
+
+type DomainStatus = variant {
+  Active;
+  Expired;
+  Reserved;
+};
+
+type RegistrationRequest = record {
+  domain_name : text;
+  administrator : principal;
+  operator : principal;
+  payment_block : nat64;
+};
+
+type AdminGiftRequest = record {
+  domain_name : text;
+  recipient : principal;
+  administrator : principal;
+  operator : principal;
+};
+
+type AdminCreateDomainRequest = record {
+  domain_name : text;
+  recipient : principal;
+  administrator : principal;
+  operator : principal;
+  recipient_address : text;
+};
+
+type SearchResult = record {
+  domain : text;
+  description : text;
+  mcp_endpoint : text;
+  tools_count : nat32;
+  resources_count : nat32;
+  was_gifted : bool;
+};
+
+type RegistrationMode = variant {
+  Open;
+  WhitelistOnly;
+  Closed;
+};
+
+type SeasonStatus = variant {
+  Active;
+  Completed;
+  Deactivated;
+};
+
+type RegistrationSeason = record {
+  season_id : nat64;
+  min_letters : nat64;
+  max_letters : opt nat64;
+  total_allowed : nat64;
+  registered_count : nat64;
+  price_icp : nat64;
+  created_by : principal;
+  created_at : nat64;
+  status : SeasonStatus;
+};
+
+type CreateSeasonRequest = record {
+  min_letters : nat64;
+  max_letters : opt nat64;
+  total_allowed : nat64;
+  price_icp : nat64;
+};
+
+type SeasonStats = record {
+  season_number : nat64;
+  names_available : nat64;
+  names_taken : nat64;
+  price_icp : nat64;
+  status : SeasonStatus;
+};
+
+service : (principal) -> {
+  // Domain registration and management
+  "register_domain" : (RegistrationRequest) -> (variant { Ok : text; Err : text });
+  "admin_gift_domain" : (AdminGiftRequest) -> (variant { Ok : text; Err : text });
+  "admin_create_domain_with_address" : (AdminCreateDomainRequest) -> (variant { Ok : text; Err : text });
+  "renew_domain" : (text, nat64) -> (variant { Ok : text; Err : text });
+  "set_custom_mcp_endpoint" : (text, opt text) -> (variant { Ok : text; Err : text });
+  "transfer_domain_ownership" : (text, principal) -> (variant { Ok : null; Err : text });
+
+  // Domain queries
+  "get_domain_info" : (text) -> (opt DomainInfo) query;
+  "get_mcp_endpoint" : (text) -> (opt text) query;
+  "list_domains" : (opt principal) -> (vec DomainInfo) query;
+  "get_registration_fee" : (text) -> (nat64) query;
+  "get_renewal_fee" : () -> (nat64) query;
+  "can_register_domain" : (text, principal) -> (bool) query;
+  "discover_domains" : (text) -> (vec SearchResult) query;
+  "get_wallet_domain" : (principal) -> (opt text) query;
+  "get_domains_since_timestamp" : (nat64) -> (vec record { text; DomainInfo }) query;
+  "get_all_domains_with_timestamps" : () -> (vec record { text; nat64; DomainInfo }) query;
+
+  // Admin functions
+  "init" : (principal) -> ();
+  "add_admin" : (principal) -> (variant { Ok : null; Err : text });
+  "remove_admin" : (principal) -> (variant { Ok : null; Err : text });
+  "add_reserved_name" : (text) -> (variant { Ok : null; Err : text });
+  "approve_user_for_short_names" : (principal) -> (variant { Ok : null; Err : text });
+  "revoke_short_name_approval" : (principal) -> (variant { Ok : null; Err : text });
+  "set_short_name_mode" : (RegistrationMode) -> (variant { Ok : null; Err : text });
+  "set_base_fee" : (nat64) -> (variant { Ok : null; Err : text });
+  "set_domain_canister_wasm" : (vec nat8) -> (variant { Ok : null; Err : text });
+
+  // Admin queries
+  "get_admins" : () -> (vec principal) query;
+  "is_user_admin" : (principal) -> (bool) query;
+  "get_approved_short_users" : () -> (vec principal) query;
+  "get_short_name_mode" : () -> (RegistrationMode) query;
+
+  // Season management
+  "create_registration_season" : (CreateSeasonRequest) -> (variant { Ok : nat64; Err : text });
+  "deactivate_season" : (nat64) -> (variant { Ok : null; Err : text });
+  "admin_add_address_to_season" : (nat64, text) -> (variant { Ok : null; Err : text });
+
+  // Season queries
+  "get_registration_season" : (nat64) -> (opt RegistrationSeason) query;
+  "get_active_seasons" : () -> (vec RegistrationSeason) query;
+  "get_all_seasons" : () -> (vec RegistrationSeason) query;
+  "get_applicable_season_for_domain" : (text) -> (opt RegistrationSeason) query;
+  "get_season_stats" : (nat64) -> (opt SeasonStats) query;
+  "get_season_by_number" : (nat64) -> (opt RegistrationSeason) query;
+  "get_season_stats_by_number" : (nat64) -> (opt SeasonStats) query;
+  "get_all_season_stats" : () -> (vec SeasonStats) query;
+  "get_current_season" : () -> (opt RegistrationSeason) query;
+  "get_season_addresses" : (nat64) -> (vec text) query;
+  "is_address_authorized_for_current_season" : (text) -> (bool) query;
 }

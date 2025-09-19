@@ -1,7 +1,7 @@
 {
   "canisters": {
     "registry": {
-      "candid": "src/registry/registry.did",
+      "candid": "src/registry_backend/registry_backend.did",
       "package": "registry",
       "type": "rust"
     }
