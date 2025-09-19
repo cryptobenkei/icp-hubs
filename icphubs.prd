@@ -1,0 +1,412 @@
+# ICP Name Registry - Product Requirements Document
+
+## 1. Executive Summary
+
+The ICP Name Registry is a decentralized naming service for the Internet Computer Protocol ecosystem that allows users to register human-readable names that resolve to IC principals (identities or canisters). The system operates through seasonal launches with configurable parameters and supports rich metadata through attached files.
+
+**Key Value Propositions:**
+- Simplified address resolution for IC ecosystem
+- Seasonal launch model for controlled growth and scarcity
+- Rich metadata support for AI training and canister interface definitions
+- Administrative controls for ecosystem management
+
+## 2. Product Overview
+
+### 2.1 Core Concept
+Users can register names during active seasons by paying the season's price. Each name points to either a user identity (wallet) or a canister, with optional rich metadata files attached.
+
+### 2.2 Target Users
+- **Primary**: IC developers and users wanting memorable addresses
+- **Secondary**: AI model trainers seeking IC ecosystem data
+- **Tertiary**: dApp developers needing service discovery
+
+## 3. Core Features
+
+### 3.1 Season Management System
+
+#### 3.1.1 Season Configuration
+**Requirement**: Admins must be able to create and configure registration seasons with the following parameters:
+
+- **Season Name**: Descriptive identifier (e.g., "Genesis Season", "Summer 2025")
+- **Start Timestamp**: When registration opens
+- **End Timestamp**: When registration closes
+- **Maximum Names**: Total names available in this season
+- **Price**: Cost in ICP tokens per registration
+- **Minimum Name Length**: Shortest allowed name (e.g., 3 characters)
+- **Maximum Name Length**: Longest allowed name (e.g., 63 characters)
+
+#### 3.1.2 Season Lifecycle Rules
+**Requirements**:
+- Only one season can be active at any time
+- New seasons cannot start until the previous season has ended
+- Admin can end a season early but cannot extend beyond the configured end time
+- Seasons cannot overlap in their active periods
+- Users can only register names during active seasons
+
+#### 3.1.3 Season Status Tracking
+**States**:
+- `Pending`: Created but not yet started
+- `Active`: Currently accepting registrations
+- `Ended`: No longer accepting registrations
+- `Cancelled`: Terminated early by admin
+
+### 3.2 Name Registration System
+
+#### 3.2.1 Public Registration
+**Requirements**:
+- Users can register available names during active seasons for free
+- Registration is limited to one name per identity unless they already own names
+- Names must meet the season's length requirements
+- Names are case-insensitive and stored in lowercase
+- Registration timestamp is recorded for triggering backend processes
+
+#### 3.2.2 Administrative Registration
+**Requirements**:
+- Admins can create names without payment
+- Admin names are counted against season limits
+- Admin can assign names to any address
+- Admin registrations are possible outside of active seasons
+
+#### 3.2.3 Name Validation Rules
+**Requirements**:
+- Names must be alphanumeric with hyphens
+- No leading or trailing hyphens
+- No consecutive hyphens
+- Case-insensitive storage and lookup
+- Unicode normalization for international characters
+
+### 3.3 Address Management
+
+#### 3.3.1 Address Types
+**Supported Types**:
+- **Identity**: User wallet/identity principal
+- **Canister**: Smart contract canister principal
+
+#### 3.3.2 Address Operations
+**Requirements**:
+- Name owners can update their name's target address
+- Ownership can be transferred to another principal
+- Reverse lookup: find all names pointing to an address
+- Forward lookup: resolve name to address and metadata
+
+### 3.4 Metadata File System
+
+#### 3.4.1 Required Files
+Each registered name supports three types of metadata:
+
+**Structured Metadata (JSON)**:
+- Purpose: Form-based metadata (name, description, logo, contact info, etc.)
+- Format: Structured form data converted to JSON
+- Max Size: 10KB
+- Content: Display name, description, logo URL/data, social links, tags
+- Interface: Web form with fields for easy editing
+
+**Knowledge File (.md)**:
+- Purpose: Open knowledge sharing and documentation
+- Format: Markdown
+- Max Size: 100KB
+- Content: Documentation, guides, knowledge base content
+- Public: Freely accessible for community knowledge sharing
+
+**DID File** (Canister names only):
+- Purpose: Candid interface definition
+- Format: .did file
+- Max Size: 50KB
+- Content: Canister's public interface definition
+
+#### 3.4.2 File Management
+**Requirements**:
+- Only name owners can upload/update files
+- Files are stored on-chain in the registry canister
+- File content is publicly readable
+- File history is not maintained (updates overwrite)
+- Files can be deleted by owner
+
+### 3.6 Reputation System
+
+#### 3.6.1 Reputation Overview
+**Purpose**: A trust-based system where verified community members can vouch for or flag other names, creating a decentralized reputation network.
+
+#### 3.6.2 Trusted Verifiers
+**Requirements**:
+- Admins can designate names as "Trusted Verifiers"
+- Trusted Verifiers are established, verified names in the ecosystem
+- Verifiers can give or remove reputation points to other names
+- Each verifier can only affect another name's reputation once (one vote per verifier-target pair)
+- Verifiers cannot vote on their own names
+
+#### 3.6.3 Reputation Scoring
+**Mechanics**:
+- Each reputation vote is either +1 (positive) or -1 (negative)
+- Net reputation = Total positive votes - Total negative votes
+- Reputation can go negative (indicating community distrust)
+- Default reputation for new names is 0
+
+#### 3.6.4 Reputation Actions
+**Available Actions**:
+- `UpVote`: Add +1 reputation point
+- `DownVote`: Add -1 reputation point
+- `RemoveVote`: Remove previous vote (resets to neutral)
+- `ChangeVote`: Change from upvote to downvote or vice versa
+
+#### 3.6.5 Transparency Requirements
+**Visibility**:
+- All reputation votes are publicly visible
+- Each vote shows: voter name, target name, vote type, timestamp
+- Reputation history is immutable (changes create new entries)
+- Anyone can query who voted for/against any name
+- Reputation score is prominently displayed with name records
+
+#### 3.6.6 Fairness Mechanisms
+**Safeguards**:
+- One vote per verifier per target name (prevents spam)
+- Verifiers cannot vote on themselves (prevents self-promotion)
+- Vote changes are logged transparently
+- Admin can revoke verifier status if abused
+- Reputation votes cannot be made anonymously
+
+### 3.7 Address Verification System
+
+#### 3.6.1 Verification Requirements
+**Requirement**: When a name owner updates the address their name points to (not ownership transfer), the new address must be verified to prevent unauthorized pointing.
+
+#### 3.6.2 Identity Address Verification
+**Requirements**:
+- When updating to an Identity address, the target identity must sign a verification message
+- Verification message must include: name being updated, new address, timestamp, and nonce
+- Signature must be valid for the target identity principal
+- Verification expires after 24 hours if not completed
+- Only verified address updates are accepted
+
+#### 3.6.3 Canister Address Verification
+**Requirements**:
+- When updating to a Canister address, the canister's deployer/controller must sign verification
+- System must query the canister's controller list to identify authorized signers
+- Any controller of the target canister can sign the verification
+- Verification message includes: name, canister principal, timestamp, and nonce
+- Controllers can change over time, so verification checks current controller list
+
+#### 3.6.4 Verification Workflow
+**Process**:
+1. Name owner initiates address update → Creates pending verification request
+2. System generates verification challenge (message + nonce)
+3. Target address (or controller) signs the challenge
+4. System validates signature and processes address update
+5. Pending request expires if not completed within 24 hours
+
+#### 3.6.5 Verification States
+**States**:
+- `Pending`: Verification request created, awaiting signature
+- `Verified`: Signature validated, address update processed  
+- `Expired`: Request timed out without verification
+- `Failed`: Invalid signature or verification error
+
+#### 3.5.1 Timestamp-Based Queries
+**Requirement**: Support querying names by registration timestamp for external database synchronization.
+
+**Query Types**:
+- Names registered after timestamp X
+- Names registered between timestamps X and Y
+- Names modified after timestamp X
+- Bulk export of all names with timestamps
+
+#### 3.5.2 Search and Filter
+**Requirements**:
+- Search names by text pattern
+- Filter by address type (Identity vs Canister)
+- Filter by season
+- Filter by owner
+- Filter by presence of specific file types
+
+## 4. Technical Requirements
+
+### 4.1 Data Models
+
+#### 4.1.1 Season Model
+```
+Season {
+    id: Text,
+    name: Text,
+    startTime: Int,
+    endTime: Int,
+    maxNames: Nat,
+    price: Nat, // in e8s
+    minNameLength: Nat,
+    maxNameLength: Nat,
+    status: SeasonStatus,
+    registeredCount: Nat
+}
+```
+
+#### 4.1.2 Name Record Model
+```
+NameRecord {
+    name: Text,
+    address: AddressType,
+    owner: Principal,
+    seasonId: Text,
+    registrationTime: Int,
+    lastModified: Int,
+    metadata: {
+        displayName: ?Text,
+        description: ?Text,
+        logo: ?Blob, // Image data or URL
+        website: ?Text,
+        socialLinks: ?[SocialLink],
+        tags: ?[Text],
+        contactInfo: ?ContactInfo
+    },
+    knowledgeFile: ?Text, // Markdown content
+    didFile: ?Text // DID content for canisters
+}
+
+SocialLink {
+    platform: Text, // "twitter", "github", etc.
+    url: Text
+}
+
+ContactInfo {
+    email: ?Text,
+    discord: ?Text,
+    telegram: ?Text
+}
+```
+
+#### 4.1.3 Season Query Response
+```
+SeasonInfo {
+    seasonNumber: Nat,
+    name: Text,
+    totalNames: Nat,
+    availableNames: Nat,
+    minCharacters: Nat,
+    price: Nat, // Always 0 for free registration
+    status: SeasonStatus,
+    startTime: Int,
+    endTime: Int
+}
+```
+
+### 4.2 Performance Requirements
+- Name lookup queries must complete in <100ms
+- Support for 100,000+ registered names
+- Bulk timestamp queries for up to 10,000 records
+- File upload/download in <2 seconds for max size files
+
+### 4.3 Security Requirements
+- Only contract admins can manage seasons
+- Only name owners can modify their names
+- Payment validation for public registrations
+- Rate limiting on registration attempts
+- Input validation and sanitization
+
+## 5. User Stories
+
+### 5.1 Admin User Stories
+- As an admin, I want to create a new season so that users can register names with new parameters
+- As an admin, I want to monitor season progress so I can plan future seasons
+- As an admin, I want to create premium names so I can assign them to strategic partners
+- As an admin, I want to end a season early so I can respond to market conditions
+
+### 5.2 Developer User Stories
+- As a developer, I want to register a name for my canister so users can easily find it
+- As a developer, I want to upload my canister's DID file so other developers can integrate with it
+- As a developer, I want to query new names so I can update my dApp's service directory
+
+### 5.3 End User Stories
+- As a user, I want to register a memorable name so others can easily send me tokens
+- As a user, I want to lookup a service name so I can find the right canister to interact with
+- As a user, I want to transfer my name ownership so I can sell it to another party
+- As a user, I want to update my name's address so it points to my new canister
+- As a canister controller, I want to verify that a name can point to my canister so I control what names reference it
+- As a wallet owner, I want to verify that a name can point to my identity so I control what names reference me
+
+## 6. API Specifications
+
+### 6.1 Season Management APIs
+- `createSeason(config: SeasonConfig)` - Admin only
+- `getCurrentSeason()` - Public query
+- `getSeasonHistory()` - Public query
+- `endCurrentSeason()` - Admin only
+
+### 6.2 Registration APIs
+- `registerName(name: Text, address: AddressType)` - Public, free registration
+- `adminRegisterName(name: Text, address: AddressType, owner: Principal)` - Admin only
+- `isNameAvailable(name: Text)` - Public query
+- `hasNameAttached(identity: Principal)` - Public query
+
+### 6.3 Name Management APIs
+- `initiateAddressUpdate(name: Text, newAddress: AddressType)` - Owner only, creates verification request
+- `verifyAddressUpdate(requestId: Text, signature: Blob)` - Target address or controller
+- `getVerificationRequest(requestId: Text)` - Public query
+- `getPendingVerifications(address: AddressType)` - Public query
+- `transferOwnership(name: Text, newOwner: Principal)` - Owner only (no verification needed)
+- `updateNameMetadata(name: Text, metadata: NameMetadata)` - Owner only
+- `uploadMarkdownFile(name: Text, content: Text)` - Owner only
+- `uploadDIDFile(name: Text, content: Text)` - Owner only (canister names only)
+- `uploadLogo(name: Text, logoData: Blob)` - Owner only
+
+### 6.4 Query APIs
+- `lookupName(name: Text)` - Public query
+- `lookupAddress(address: AddressType)` - Public query
+- `checkSeason(seasonNumber: Nat)` - Public query (0 = current season)
+- `hasNameAttached(identity: Principal)` - Public query
+- `getNamesSince(timestamp: Int)` - Public query
+- `getNamesBetween(start: Int, end: Int)` - Public query
+- `searchNames(pattern: Text, filters: SearchFilters)` - Public query
+
+## 7. Success Metrics
+
+### 7.1 Adoption Metrics
+- Number of names registered per season
+- Number of unique owners
+- Season sell-out rate and time
+- Developer adoption (canister names vs identity names)
+
+### 7.2 Usage Metrics
+- Daily name resolution queries
+- File upload/download volume
+- API query frequency
+- External integrations
+
+### 7.3 Economic Metrics
+- Total ICP collected in registration fees
+- Average price per name across seasons
+- Name transfer frequency and volume
+
+## 8. Future Considerations
+
+### 8.1 Potential Enhancements
+- Subdomain support (alice.mycompany)
+- Name expiration and renewal system
+- Decentralized governance for admin functions
+- Integration with IC identity systems
+- Premium name auctions
+- Name marketplace with escrow
+
+### 8.2 Scalability Considerations
+- Migration to stable memory for large datasets
+- Distributed file storage for large metadata
+- Caching layer for frequent queries
+- Event system for real-time updates
+
+## 9. Risk Assessment
+
+### 9.1 Technical Risks
+- Canister upgrade complexity with large datasets
+- On-chain storage costs for files
+- Query performance with large name counts
+
+### 9.2 Business Risks
+- Low adoption in early seasons
+- Name squatting and speculation
+- Competition from alternative naming systems
+
+### 9.3 Mitigation Strategies
+- Implement stable memory early
+- Consider file size limits and external storage
+- Build anti-squatting mechanisms
+- Create developer incentive programs
+- Implement robust signature verification to prevent unauthorized address pointing
+- Cache canister controller information to improve verification performance
+- Provide clear UX for the verification process to reduce user confusion
